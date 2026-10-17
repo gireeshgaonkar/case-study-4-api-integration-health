@@ -1,0 +1,31 @@
+# macOS metadata & resource forks
+__MACOSX/
+._*
+.DS_Store
+
+# Python build & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv/
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor & OS settings
+.vscode/
+.idea/
+Thumbs.db
+
+# Private interview prep & notes
+approach*
+
