@@ -61,7 +61,11 @@ def render_dashboard(
     cards = []
     for result in sorted(
         results,
-        key=lambda item: (-HEALTH_ORDER[item.status], item.name),
+        key=lambda item: (
+            -HEALTH_ORDER[item.status],
+            -(item.failure_rate_pct if item.failure_rate_pct is not None else -1),
+            item.name,
+        ),
     ):
         card_class = STATUS_CLASS[result.status]
         failure_rate = (
@@ -83,7 +87,9 @@ def render_dashboard(
             for status, count in result.status_counts.items()
         )
         reasons = "".join(
-            f"<li>{html.escape(reason)}</li>" for reason in result.reasons
+            f"<li>{html.escape(reason)}</li>"
+            for reason in result.reasons
+            if not reason.startswith("Failure causes:")
         )
         cards.append(
             f"""

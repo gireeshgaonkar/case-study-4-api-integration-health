@@ -115,6 +115,11 @@ def parse_logs(data: Any) -> list[Request]:
                 f"Record {record_number}: status_code must be an HTTP status "
                 "integer from 100 to 599, or null."
             )
+        if status == "success" and status_code is not None and status_code >= 400:
+            raise ValueError(
+                f"Record {record_number}: status is 'success' but "
+                f"status_code is {status_code}."
+            )
 
         requests.append(
             Request(

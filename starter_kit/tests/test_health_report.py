@@ -1,3 +1,4 @@
+import json
 import unittest
 import threading
 from datetime import datetime, timedelta, timezone
@@ -83,6 +84,22 @@ class ParseLogsTests(unittest.TestCase):
                 }
             )
 
+    def test_rejects_success_status_with_http_error_code(self) -> None:
+        with self.assertRaisesRegex(ValueError, "success.*status_code is 500"):
+            parse_logs(
+                {
+                    "logs": [
+                        {
+                            "integration": "Example",
+                            "timestamp": "2026-08-04T09:00:00",
+                            "status": "success",
+                            "status_code": 500,
+                            "latency_ms": 100,
+                        }
+                    ]
+                }
+            )
+
     def test_rejects_missing_logs_list(self) -> None:
         with self.assertRaisesRegex(ValueError, '"logs" list'):
             parse_logs({})
@@ -90,9 +107,6 @@ class ParseLogsTests(unittest.TestCase):
 
 class AssessmentTests(unittest.TestCase):
     def test_sample_dataset_classifications_and_timeout_count(self) -> None:
-        import json
-        from pathlib import Path
-
         data_path = Path(__file__).parents[1] / "data" / "integration_logs.json"
         requests = parse_logs(json.loads(data_path.read_text(encoding="utf-8")))
         _, _, results = assess_integrations(requests)
@@ -255,6 +269,40 @@ class DashboardTests(unittest.TestCase):
 
         self.assertIn("&lt;script&gt;", page)
         self.assertNotIn('<script>alert("x")</script>', page)
+
+    def test_dashboard_orders_cards_by_severity_then_failure_rate(self) -> None:
+        data_path = Path(__file__).parents[1] / "data" / "integration_logs.json"
+        requests = parse_logs(
+            json.loads(data_path.read_text(encoding="utf-8"))
+        )
+        start, end, results = assess_integrations(requests)
+        page = render_dashboard(start, end, results)
+
+        greenhouse = page.index("<h2>Greenhouse ATS Sync</h2>")
+        adp = page.index("<h2>ADP Payroll Sync</h2>")
+        docusign = page.index("<h2>DocuSign Envelope API</h2>")
+        slack = page.index("<h2>Slack Notifications</h2>")
+
+        self.assertLess(greenhouse, adp)
+        self.assertLess(adp, docusign)
+        self.assertLess(docusign, slack)
+
+    def test_dashboard_does_not_repeat_failure_causes_in_reasons(self) -> None:
+        requests = [
+            request("Rate limited", "error", minute=index, status_code=429)
+            for index in range(4)
+        ] + [
+            request("Rate limited", "success", minute=4, status_code=200)
+        ]
+        start, end, results = assess_integrations(requests)
+        page = render_dashboard(start, end, results)
+
+        self.assertEqual(page.count("<b>Failure causes:</b>"), 1)
+        self.assertEqual(page.count("HTTP 429 rate limit: 4"), 1)
+        self.assertNotIn(
+            "<li>Failure causes: HTTP 429 rate limit=4.</li>",
+            page,
+        )
 
     def test_local_server_serves_health_dashboard(self) -> None:
         data_path = Path(__file__).parents[1] / "data" / "integration_logs.json"
