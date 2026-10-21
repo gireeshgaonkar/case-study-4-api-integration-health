@@ -1,5 +1,7 @@
 # API Integration Health — Solution Design
 
+**Customer:** Brightline HR
+
 ## Problem
 
 Brightline HR's Platform Ops team usually learns about integration failures

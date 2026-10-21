@@ -1,5 +1,7 @@
 # API Integration Health
 
+**Customer:** Brightline HR
+
 A small, dependency-free Python application with a local browser dashboard as
 the primary v1 operator view and a CLI for direct report output. It summarizes
 third-party integration health from Brightline HR's supplied request-log seed
